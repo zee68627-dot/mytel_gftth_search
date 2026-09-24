@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FTTH Customer Lookup</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-md">
+    <h1 class="text-2xl font-bold text-gray-800 mb-4">FTTH Customer Lookup</h1>
+    
+    <div class="flex gap-2 mb-4">
+      <input type="text" id="searchInput" placeholder="Search by Account, Phone, VMY Code, Station..." 
+             class="flex-1 border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <button onclick="handleSearch()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Search</button>
+    </div>
+
+    <div id="statusMessage" class="text-sm text-gray-600 mb-2 hidden"></div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left border text-gray-700 hidden" id="resultTable">
+        <thead class="bg-gray-200 uppercase text-xs">
+          <tr>
+            <th class="p-2 border">Account</th>
+            <th class="p-2 border">Name</th>
+            <th class="p-2 border">Phone</th>
+            <th class="p-2 border">Station</th>
+            <th class="p-2 border">VMY Code</th>
+            <th class="p-2 border">Tech Name</th>
+            <th class="p-2 border">Address</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function handleSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      const statusMsg = document.getElementById('statusMessage');
+      const table = document.getElementById('resultTable');
+      const tbody = document.getElementById('tableBody');
+
+      if (!query) return;
+
+      tbody.innerHTML = '';
+      table.classList.add('hidden');
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerText = 'Searching Database...';
+
+      try {
+        const response = await fetch(`/.netlify/functions/search?q=${encodeURIComponent(query)}`);
+        const csvText = await response.text();
+
+        if (!response.ok) {
+          throw new Error(`Server Error (${response.status}): ${csvText}`);
+        }
+
+        if (!csvText.trim()) {
+          statusMsg.innerText = 'No records found.';
+          return;
+        }
+
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            const rows = results.data;
+
+            if (rows.length === 0) {
+              statusMsg.innerText = 'No records found.';
+              return;
+            }
+
+            statusMsg.innerText = `Found ${rows.length} record(s).`;
+            table.classList.remove('hidden');
+
+            rows.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.className = 'border-b hover:bg-gray-50';
+              tr.innerHTML = `
+                <td class="p-2 border font-semibold">${item.account || ''}</td>
+                <td class="p-2 border">${item.subscriber_name || ''}</td>
+                <td class="p-2 border">${item.custoemr_phone_number || ''}</td>
+                <td class="p-2 border">${item.station_code || ''}</td>
+                <td class="p-2 border">${item.VMY_Code || ''}</td>
+                <td class="p-2 border">${item.technical_name || ''}</td>
+                <td class="p-2 border text-xs">${item.address || ''}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+          }
+        });
+
+      } catch (err) {
+        statusMsg.innerText = err.message;
+      }
+    }
+  </script>
+</body>
+</html>
