@@ -90,14 +90,55 @@
 
     // Search Logic (Netlify Serverless Function)
     async function handleSearch() {
-      const query = document.getElementById('searchInput').value.trim();
-      const statusMsg = document.getElementById('statusMessage');
-      const cardsContainer = document.getElementById('cardsContainer');
+  const queryInput = document.getElementById('searchInput') || document.getElementById('query');
+  const query = queryInput ? queryInput.value.trim() : '';
+  const statusMsg = document.getElementById('statusMessage') || document.getElementById('status');
+  const cardsContainer = document.getElementById('cardsContainer') || document.getElementById('results');
 
-      if (!query) {
-        alert('ကျေးဇူးပြု၍ ရှာဖွေလိုသော အချက်အလက် ရိုက်ထည့်ပါ');
-        return;
-      }
+  if (!query) {
+    alert('ကျေးဇူးပြု၍ ရှာဖွေလိုသော အချက်အလက် ရိုက်ထည့်ပါ');
+    return;
+  }
+
+  if (statusMsg) {
+    statusMsg.classList.remove('hidden');
+    statusMsg.innerText = 'Searching data...';
+  }
+  if (cardsContainer) cardsContainer.innerHTML = '';
+
+  try {
+    const response = await fetch(`/.netlify/functions/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) throw new Error('Search failed with status: ' + response.status);
+
+    const csvText = await response.text();
+    let rawData = parseCSV(csvText);
+
+    // Target Fields များတွင်သာ Strict Filter ပြုလုပ်ခြင်း
+    const lowerQuery = query.toLowerCase();
+    const filteredResults = rawData.filter(item => {
+      const acc = (item.account || item.Account || '').toLowerCase();
+      const station = (item.station_code || item.Station_Code || '').toLowerCase();
+      const vmy = (item.VMY_Code || item.vmy_code || '').toLowerCase();
+      const phone = (item.custoemr_phone_number || item.customer_phone || '').toLowerCase();
+
+      return acc.includes(lowerQuery) || 
+             station.includes(lowerQuery) || 
+             vmy.includes(lowerQuery) || 
+             phone.includes(lowerQuery);
+    });
+
+    if (filteredResults.length === 0) {
+      if (statusMsg) statusMsg.innerText = 'No records found for "' + query + '"';
+      return;
+    }
+
+    if (statusMsg) statusMsg.innerText = `Found ${filteredResults.length} record(s).`;
+    renderDetailCards(filteredResults);
+
+  } catch (err) {
+    if (statusMsg) statusMsg.innerText = 'Connection error: ' + err.message;
+  }
+}
 
       statusMsg.classList.remove('hidden');
       statusMsg.innerText = 'Searching data...';
