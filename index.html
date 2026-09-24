@@ -3,132 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FTTH Customer Lookup</title>
+  <title>MYTEL FTTH DATA</title>
+  
+  <!-- Tailwind CSS & FontAwesome Icons -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 font-sans antialiased">
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
-  <!-- Header -->
-  <header class="bg-indigo-600 text-white shadow-md">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <i class="fa-solid font-bold fa-network-wired text-2xl text-indigo-200"></i>
-        <h1 class="text-xl font-bold tracking-wide">FTTH Subscriber Lookup</h1>
-      </div>
-      <span class="text-xs bg-indigo-700 text-indigo-100 px-2.5 py-1 rounded-full font-medium">Internal Tool</span>
-    </div>
-  </header>
-
-  <!-- Main Container -->
-  <main class="max-w-6xl mx-auto px-4 py-6">
+  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
     
-    <!-- Search Box Card -->
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-6">
-      <form id="searchForm" class="flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-grow">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </div>
-          <input 
-            type="text" 
-            id="searchInput" 
-            placeholder="Search Account, Name, Phone, VMY Code, Station..." 
-            class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700 text-sm md:text-base transition-all"
-            required
-          />
-        </div>
-        <button 
-          type="submit" 
-          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg shadow hover:shadow-md transition-all flex items-center justify-center gap-2 text-sm md:text-base cursor-pointer active:scale-95">
-          <i class="fa-solid fa-search"></i> Search
-        </button>
-      </form>
-      <p class="text-xs text-slate-400 mt-2.5 flex items-center gap-1">
-        <i class="fa-solid fa-circle-info"></i> Enter partial keywords like Subscriber Name, VMY Code, Phone Number, or Station Code.
-      </p>
+    <!-- Header Section -->
+    <div class="border-b pb-4 mb-6 text-center">
+      <p class="text-xs text-gray-500 font-semibold tracking-wide uppercase">Developed by Min Khant Zaw</p>
+      <h1 class="text-2xl font-bold text-blue-900 mt-1">MYTEL FTTH DATA</h1>
+      <h2 class="text-sm text-gray-600">Account / Station / VMY / Phone / Name Search</h2>
     </div>
 
-    <!-- Status & Results Count -->
-    <div id="statusArea" class="hidden mb-4 flex items-center justify-between px-1">
-      <span id="resultCount" class="text-sm font-medium text-slate-600"></span>
+    <!-- Search Input Section -->
+    <div class="flex gap-2 mb-6">
+      <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="Enter Account, Station Code, Phone, Name or VMY Code..." 
+        class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onkeypress="if(event.key === 'Enter') handleSearch()"
+      />
+      <button 
+        onclick="handleSearch()" 
+        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition flex items-center gap-1 cursor-pointer"
+      >
+        <i class="fa-solid fa-magnifying-glass"></i> Search
+      </button>
     </div>
 
-    <!-- Loading Spinner -->
-    <div id="loading" class="hidden py-12 text-center">
-      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent"></div>
-      <p class="mt-3 text-sm font-medium text-slate-500">Searching subscriber database...</p>
+    <!-- Message / Status Area -->
+    <div id="statusMessage" class="text-sm text-gray-500 mb-4 hidden font-medium"></div>
+
+    <!-- Multi-Record Results Table -->
+    <div id="tableContainer" class="overflow-x-auto mb-6 hidden">
+      <table class="w-full text-sm text-left text-gray-700 border">
+        <thead class="bg-gray-800 text-white uppercase text-xs">
+          <tr>
+            <th class="py-2.5 px-3">No</th>
+            <th class="py-2.5 px-3">Account</th>
+            <th class="py-2.5 px-3">Subscriber</th>
+            <th class="py-2.5 px-3">Station Code</th>
+            <th class="py-2.5 px-3">VMY Code</th>
+            <th class="py-2.5 px-3 text-center">Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- JS Table Rows -->
+        </tbody>
+      </table>
     </div>
 
-    <!-- Results Table Card -->
-    <div id="resultsCard" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs md:text-sm text-slate-600 border-collapse">
-          <thead id="tableHeader" class="bg-slate-50 text-slate-700 uppercase font-semibold border-b border-slate-200 tracking-wider">
-            <!-- Headers generated dynamically -->
-          </thead>
-          <tbody id="tableBody" class="divide-y divide-slate-200">
-            <!-- Rows generated dynamically -->
-          </tbody>
-        </table>
+    <!-- Selected Customer Detail Card -->
+    <div id="detailCard" class="bg-blue-50 border border-blue-200 rounded-lg p-5 hidden">
+      <div class="flex items-center justify-between border-b border-blue-200 pb-2 mb-4">
+        <h3 class="text-lg font-bold text-blue-900">Subscriber Details</h3>
+        <button onclick="closeDetails()" class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded hover:bg-blue-300 font-semibold">Back to List</button>
+      </div>
+      <div id="detailContent" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <!-- JS Details -->
       </div>
     </div>
 
-    <!-- Empty State / No Results -->
-    <div id="emptyState" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
-        <i class="fa-solid fa-folder-open text-xl"></i>
-      </div>
-      <h3 class="text-base font-semibold text-slate-700">No Subscriber Found</h3>
-      <p class="text-xs text-slate-500 mt-1">Try checking your spelling or search with a different keyword.</p>
-    </div>
+  </div>
 
-  </main>
-
+  <!-- Javascript Code -->
   <script>
-    const searchForm = document.getElementById('searchForm');
-    const searchInput = document.getElementById('searchInput');
-    const loading = document.getElementById('loading');
-    const resultsCard = document.getElementById('resultsCard');
-    const tableHeader = document.getElementById('tableHeader');
-    const tableBody = document.getElementById('tableBody');
-    const emptyState = document.getElementById('emptyState');
-    const statusArea = document.getElementById('statusArea');
-    const resultCount = document.getElementById('resultCount');
+    let searchResultsData = [];
 
-    searchForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const query = searchInput.value.trim();
-      if (!query) return;
-
-      // Reset Views
-      loading.classList.remove('hidden');
-      resultsCard.classList.add('hidden');
-      emptyState.classList.add('hidden');
-      statusArea.classList.add('hidden');
-
-      try {
-        const response = await fetch(`/.netlify/functions/search?q=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('Search request failed');
-
-        const csvText = await response.text();
-        parseAndDisplayCSV(csvText);
-      } catch (err) {
-        alert("Error fetching data: " + err.message);
-      } finally {
-        loading.classList.add('hidden');
-      }
-    });
-
-    function parseAndDisplayCSV(csvText) {
+    // Simple CSV Parser
+    function parseCSV(csvText) {
       const lines = csvText.trim().split('\n').filter(line => line.length > 0);
+      if (lines.length <= 1) return [];
 
-      if (lines.length <= 1) {
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      // Simple CSV Parser considering quotes
       const parseCSVLine = (text) => {
         const result = [];
         let cur = '';
@@ -151,23 +103,150 @@
       const headers = parseCSVLine(lines[0]);
       const rows = lines.slice(1).map(parseCSVLine);
 
-      // Render Table Headers
-      tableHeader.innerHTML = `
-        <tr>
-          ${headers.map(h => `<th class="px-4 py-3 whitespace-nowrap">${h.replace(/_/g, ' ')}</th>`).join('')}
-        </tr>
+      return rows.map(row => {
+        const obj = {};
+        headers.forEach((header, index) => {
+          obj[header] = row[index] || '';
+        });
+        return obj;
+      });
+    }
+
+    // Search Logic (Netlify Function API Call)
+    async function handleSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      const statusMsg = document.getElementById('statusMessage');
+      const tableContainer = document.getElementById('tableContainer');
+      const detailCard = document.getElementById('detailCard');
+
+      if (!query) {
+        alert('ကျေးဇူးပြု၍ ရှာဖွေလိုသော အချက်အလက် ရိုက်ထည့်ပါ');
+        return;
+      }
+
+      statusMsg.classList.remove('hidden');
+      statusMsg.innerText = 'Searching data...';
+      tableContainer.classList.add('hidden');
+      detailCard.classList.add('hidden');
+
+      try {
+        const response = await fetch(`/.netlify/functions/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Search failed with status: ' + response.status);
+
+        const csvText = await response.text();
+        searchResultsData = parseCSV(csvText);
+
+        if (searchResultsData.length === 0) {
+          statusMsg.innerText = 'No records found for "' + query + '"';
+          return;
+        }
+
+        statusMsg.innerText = `Found ${searchResultsData.length} record(s).`;
+        
+        if (searchResultsData.length === 1) {
+          showDetails(0);
+        } else {
+          renderTable(searchResultsData);
+        }
+      } catch (err) {
+        statusMsg.innerText = 'Connection error: ' + err.message;
+      }
+    }
+
+    // Render Table for Multiple Results
+    function renderTable(data) {
+      const tableBody = document.getElementById('tableBody');
+      const tableContainer = document.getElementById('tableContainer');
+      tableBody.innerHTML = '';
+
+      data.forEach((item, index) => {
+        const row = `
+          <tr class="border-b hover:bg-gray-100 bg-white transition">
+            <td class="py-2.5 px-3">${index + 1}</td>
+            <td class="py-2.5 px-3 font-semibold text-blue-800">${item.account || '-'}</td>
+            <td class="py-2.5 px-3 font-medium">${item.subscriber_name || '-'}</td>
+            <td class="py-2.5 px-3">${item.station_code || '-'}</td>
+            <td class="py-2.5 px-3">${item.VMY_Code || item.vmy_code || '-'}</td>
+            <td class="py-2.5 px-3 text-center">
+              <button onclick="showDetails(${index})" class="bg-blue-600 text-white hover:bg-blue-700 text-xs px-3 py-1 rounded font-medium shadow-sm transition">View</button>
+            </td>
+          </tr>
+        `;
+        tableBody.innerHTML += row;
+      });
+
+      tableContainer.classList.remove('hidden');
+    }
+
+    // Close Details View
+    function closeDetails() {
+      const detailCard = document.getElementById('detailCard');
+      const tableContainer = document.getElementById('tableContainer');
+      detailCard.classList.add('hidden');
+      if (searchResultsData.length > 1) {
+        tableContainer.classList.remove('hidden');
+      }
+    }
+
+    // Show Detail View
+    function showDetails(index) {
+      const item = searchResultsData[index];
+      const detailCard = document.getElementById('detailCard');
+      const detailContent = document.getElementById('detailContent');
+      const tableContainer = document.getElementById('tableContainer');
+
+      tableContainer.classList.add('hidden');
+
+      // 1. Phone Call Helper
+      const custPhone = item.custoemr_phone_number || item.customer_phone || '';
+      const custPhoneHTML = custPhone 
+        ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono">📞 ${custPhone}</a>`
+        : '-';
+
+      const techName = item.technical_name || item.technician_name || '-';
+      const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
+      const techPhoneHTML = techPhone
+        ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono">📞 ${techPhone}</a>`
+        : '-'; 
+
+      // 2. Location & Google Maps Link Helper
+      let mapLinkHTML = '-';
+      const latLongVal = item.lat_long || item.lat_lng || item.location || '';
+      
+      if (latLongVal) {
+        const cleanCoords = latLongVal.replace(/\s+/g, '');
+        mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${latLongVal}</a>`;
+      } else if (item.latitude && item.longitude) {
+        const coords = `${item.latitude},${item.longitude}`;
+        mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${coords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${coords}</a>`;
+      }
+
+      detailContent.innerHTML = `
+        <div><strong>Account:</strong> <span class="font-semibold text-blue-900">${item.account || '-'}</span></div>
+        <div><strong>Subscriber Name:</strong> ${item.subscriber_name || '-'}</div>
+        <div><strong>Phone Number:</strong> ${custPhoneHTML}</div>
+        <div><strong>Station Code:</strong> ${item.station_code || '-'}</div>
+        <div><strong>Branch:</strong> ${item.branch || '-'}</div>
+        <div><strong>Partner Name:</strong> ${item.partner_name || '-'}</div>
+        
+        <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Technical Info</div>
+        <div><strong>Device Code:</strong> ${item.device_code || '-'}</div>
+        <div><strong>Port on Card:</strong> ${item.port_on_card || '-'}</div>
+        <div><strong>Port Splitter:</strong> ${item.port_splitter || '-'}</div>
+        <div><strong>Subscriber Node:</strong> ${item.subscriber_node || '-'}</div>
+        <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length + ' m' : '-'}</div>
+        <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
+        <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
+        <div><strong>Technician Name:</strong> ${techName}</div>
+        <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
+
+        <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
+        <div><strong>Department:</strong> ${item.department || '-'}</div>
+        <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${item.address || '-'}</div>
+        <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
       `;
 
-      // Render Table Rows
-      tableBody.innerHTML = rows.map((row, idx) => `
-        <tr class="hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}">
-          ${row.map(cell => `<td class="px-4 py-3 whitespace-nowrap font-medium text-slate-700">${cell || '-'}</td>`).join('')}
-        </tr>
-      `).join('');
-
-      resultCount.textContent = `Found ${rows.length} record(s)`;
-      statusArea.classList.remove('hidden');
-      resultsCard.classList.remove('hidden');
+      detailCard.classList.remove('hidden');
     }
   </script>
 </body>
