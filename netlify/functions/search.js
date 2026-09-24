@@ -65,16 +65,16 @@ exports.handler = async (event, context) => {
     const collection = db.collection('subscribers');
 
     const searchKey = q.trim();
-    const regexQuery = { $regex: searchKey,$options: 'i' };
+    const exactRegex = new RegExp(`^${searchKey}$`, 'i');
+    const partialRegex = new RegExp(searchKey, 'i');
 
-    // အရေးကြီးသည် - Address/Phone/Remark များကို မရှာဘဲ Target Fields များတွင်သာ Strict ရှာမည်
     const mongoQuery = {
       $or: [
-        { account: regexQuery },
-        { station_code: regexQuery },
-        { VMY_Code: regexQuery },
-        { vmy_code: regexQuery },
-        { custoemr_phone_number: regexQuery }
+        { account: exactRegex },
+        { station_code: exactRegex },
+        { VMY_Code: exactRegex },
+        { vmy_code: exactRegex },
+        { custoemr_phone_number: exactRegex }
       ]
     };
 
