@@ -1,6 +1,5 @@
 const { MongoClient } = require('mongodb');
 
-// မိမိ MongoDB Connection String ထည့်ရန်
 const mongodb+srv://zee68627_db_user:wHr3ymUSeZm1Kmqu@cluster0.rzyhepp.mongodb.net/?appName=Cluster0
 
 let cachedClient = null;
@@ -17,7 +16,6 @@ async function connectToDatabase(uri) {
   return client;
 }
 
-// Data များကို CSV String ပြောင်းပေးသော Helper Function
 function convertToCSV(items) {
   if (!items || items.length === 0) return "";
   
