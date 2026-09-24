@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 
 // မိမိ MongoDB Connection String ထည့်ရန်
-const MONGODB_URI = "mongodb+srv://zee68627_db_user:wHr3ymUSeZm1Kmqu@cluster0.vhrzrkh.mongodb.net/mytel_ftth_db?retryWrites=true&w=majority";
+const mongodb+srv://zee68627_db_user:wHr3ymUSeZm1Kmqu@cluster0.rzyhepp.mongodb.net/?appName=Cluster0
 
 let cachedClient = null;
 
