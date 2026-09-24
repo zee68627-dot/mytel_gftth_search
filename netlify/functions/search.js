@@ -19,26 +19,11 @@ async function connectToDatabase(uri) {
 function convertToCSV(items) {
   if (!items || items.length === 0) return "";
 
-  // Output CSV တွင် ပါဝင်စေလိုသော Header များ
   const headers = [
-    "account", 
-    "subscriber_name", 
-    "custoemr_phone_number", 
-    "station_code", 
-    "VMY_Code", 
-    "branch", 
-    "partner_name", 
-    "device_code", 
-    "port_on_card", 
-    "port_splitter", 
-    "subscriber_node", 
-    "cable_length", 
-    "ont_serial", 
-    "technician_name", 
-    "technical_phone_number", 
-    "department", 
-    "address", 
-    "lat_long"
+    "account", "subscriber_name", "custoemr_phone_number", "station_code", 
+    "VMY_Code", "branch", "partner_name", "device_code", "port_on_card", 
+    "port_splitter", "subscriber_node", "cable_length", "ont_serial", 
+    "technician_name", "technical_phone_number", "department", "address", "lat_long"
   ];
 
   const csvRows = [];
@@ -47,7 +32,7 @@ function convertToCSV(items) {
   for (const item of items) {
     const values = headers.map(header => {
       let val = item[header] || item[header.toLowerCase()] || "";
-      val = String(val).replace(/"/g, '""'); // CSV Double Quotes escaping
+      val = String(val).replace(/"/g, '""');
       return `"${val}"`;
     });
     csvRows.push(values.join(","));
@@ -57,7 +42,6 @@ function convertToCSV(items) {
 }
 
 exports.handler = async (event, context) => {
-  // CORS Headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -73,25 +57,23 @@ exports.handler = async (event, context) => {
     const q = event.queryStringParameters ? event.queryStringParameters.q : '';
 
     if (!q || q.trim() === '') {
-      return {
-        statusCode: 200,
-        headers,
-        body: ''
-      };
+      return { statusCode: 200, headers, body: '' };
     }
 
     const client = await connectToDatabase(MONGODB_URI);
     const db = client.db('mytel_ftth_db');
     const collection = db.collection('subscribers');
 
-    const regexQuery = { $regex: q.trim(),$options: 'i' };
+    const searchKey = q.trim();
+    const regexQuery = { $regex: searchKey,$options: 'i' };
 
-    // Index တင်ထားသော Field ၄ ခုတွင်သာ သီးသန့် ရှာဖွေမည်
+    // အရေးကြီးသည် - Address/Phone/Remark များကို မရှာဘဲ Target Fields များတွင်သာ Strict ရှာမည်
     const mongoQuery = {
       $or: [
         { account: regexQuery },
         { station_code: regexQuery },
         { VMY_Code: regexQuery },
+        { vmy_code: regexQuery },
         { custoemr_phone_number: regexQuery }
       ]
     };
@@ -106,7 +88,6 @@ exports.handler = async (event, context) => {
     };
 
   } catch (error) {
-    console.error('Search error:', error);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
