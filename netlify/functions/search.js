@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-const mongodb+srv://zee68627_db_user:wHr3ymUSeZm1Kmqu@cluster0.rzyhepp.mongodb.net/?appName=Cluster0
+const MONGODB_URI = "mongodb+srv://zee68627_db_user:wHr3ymUSeZm1Kmqu@cluster0.rzyhepp.mongodb.net/mytel_ftth_db?retryWrites=true&w=majority";
 
 let cachedClient = null;
 
