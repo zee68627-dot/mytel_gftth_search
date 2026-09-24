@@ -16,9 +16,9 @@
     
     <!-- Header Section -->
     <div class="border-b pb-4 mb-6 text-center">
-      <p class="text-xs text-gray-500 font-semibold tracking-wide uppercase">DEVELOPED BY MIN KHANT ZAW</p>
+      <p class="text-xs text-gray-500 font-semibold tracking-wide uppercase">Developed by Min Khant Zaw</p>
       <h1 class="text-2xl font-bold text-blue-900 mt-1">MYTEL FTTH DATA</h1>
-      <h2 class="text-sm text-gray-600">Account / Station / VMY / Phone / Name Search</h2>
+      <h2 class="text-sm text-gray-600">Account / Station / VMY Search</h2>
     </div>
 
     <!-- Search Input Section -->
@@ -26,7 +26,7 @@
       <input 
         type="text" 
         id="searchInput" 
-        placeholder="Enter Account, Station Code, Phone, Name or VMY Code..." 
+        placeholder="Enter Account, Station Code or VMY Code..." 
         class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         onkeypress="if(event.key === 'Enter') handleSearch()"
       />
@@ -74,7 +74,7 @@
   <script>
     let searchResultsData = [];
 
-    // CSV Parser
+    // Simple CSV Parser
     function parseCSV(csvText) {
       const lines = csvText.trim().split('\n').filter(line => line.length > 0);
       if (lines.length <= 1) return [];
@@ -110,7 +110,7 @@
       });
     }
 
-    // Search Logic
+    // Search Logic (Netlify Serverless Function)
     async function handleSearch() {
       const query = document.getElementById('searchInput').value.trim();
       const statusMsg = document.getElementById('statusMessage');
@@ -176,7 +176,7 @@
       tableContainer.classList.remove('hidden');
     }
 
-    // Show Detail View (Matching Image 2 Layout)
+    // Show Detail View
     function showDetails(index) {
       const item = searchResultsData[index];
       const detailCard = document.getElementById('detailCard');
@@ -185,13 +185,15 @@
       // 1. Phone Call Helper
       const custPhone = item.custoemr_phone_number || item.customer_phone || '';
       const custPhoneHTML = custPhone 
-        ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1"><i class="fa-solid fa-phone text-xs"></i> ${custPhone}</a>`
+        ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
         : '-';
 
       const techName = item.technician_name || item.tech_name || item.technical_name || '-';
+
       const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
+
       const techPhoneHTML = techPhone
-        ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1"><i class="fa-solid fa-phone text-xs"></i> ${techPhone}</a>`
+        ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
         : '-'; 
 
       // 2. Lat/Long & Google Maps Link Helper
