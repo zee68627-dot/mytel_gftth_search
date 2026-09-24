@@ -5,99 +5,169 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FTTH Customer Lookup</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 min-h-screen p-4">
-  <div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-md">
-    <h1 class="text-2xl font-bold text-gray-800 mb-4">FTTH Customer Lookup</h1>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans antialiased">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <i class="fa-solid font-bold fa-network-wired text-2xl text-indigo-200"></i>
+        <h1 class="text-xl font-bold tracking-wide">FTTH Subscriber Lookup</h1>
+      </div>
+      <span class="text-xs bg-indigo-700 text-indigo-100 px-2.5 py-1 rounded-full font-medium">Internal Tool</span>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 py-6">
     
-    <div class="flex gap-2 mb-4">
-      <input type="text" id="searchInput" placeholder="Search by Account, Phone, VMY Code, Station..." 
-             class="flex-1 border p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-      <button onclick="handleSearch()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Search</button>
+    <!-- Search Box Card -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 md:p-6 mb-6">
+      <form id="searchForm" class="flex flex-col sm:flex-row gap-3">
+        <div class="relative flex-grow">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search Account, Name, Phone, VMY Code, Station..." 
+            class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-700 text-sm md:text-base transition-all"
+            required
+          />
+        </div>
+        <button 
+          type="submit" 
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-3 rounded-lg shadow hover:shadow-md transition-all flex items-center justify-center gap-2 text-sm md:text-base cursor-pointer active:scale-95">
+          <i class="fa-solid fa-search"></i> Search
+        </button>
+      </form>
+      <p class="text-xs text-slate-400 mt-2.5 flex items-center gap-1">
+        <i class="fa-solid fa-circle-info"></i> Enter partial keywords like Subscriber Name, VMY Code, Phone Number, or Station Code.
+      </p>
     </div>
 
-    <div id="statusMessage" class="text-sm text-gray-600 mb-2 hidden"></div>
-
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left border text-gray-700 hidden" id="resultTable">
-        <thead class="bg-gray-200 uppercase text-xs">
-          <tr>
-            <th class="p-2 border">Account</th>
-            <th class="p-2 border">Name</th>
-            <th class="p-2 border">Phone</th>
-            <th class="p-2 border">Station</th>
-            <th class="p-2 border">VMY Code</th>
-            <th class="p-2 border">Tech Name</th>
-            <th class="p-2 border">Address</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
+    <!-- Status & Results Count -->
+    <div id="statusArea" class="hidden mb-4 flex items-center justify-between px-1">
+      <span id="resultCount" class="text-sm font-medium text-slate-600"></span>
     </div>
-  </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="hidden py-12 text-center">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent"></div>
+      <p class="mt-3 text-sm font-medium text-slate-500">Searching subscriber database...</p>
+    </div>
+
+    <!-- Results Table Card -->
+    <div id="resultsCard" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs md:text-sm text-slate-600 border-collapse">
+          <thead id="tableHeader" class="bg-slate-50 text-slate-700 uppercase font-semibold border-b border-slate-200 tracking-wider">
+            <!-- Headers generated dynamically -->
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-200">
+            <!-- Rows generated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty State / No Results -->
+    <div id="emptyState" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400 mb-3">
+        <i class="fa-solid fa-folder-open text-xl"></i>
+      </div>
+      <h3 class="text-base font-semibold text-slate-700">No Subscriber Found</h3>
+      <p class="text-xs text-slate-500 mt-1">Try checking your spelling or search with a different keyword.</p>
+    </div>
+
+  </main>
 
   <script>
-    async function handleSearch() {
-      const query = document.getElementById('searchInput').value.trim();
-      const statusMsg = document.getElementById('statusMessage');
-      const table = document.getElementById('resultTable');
-      const tbody = document.getElementById('tableBody');
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const loading = document.getElementById('loading');
+    const resultsCard = document.getElementById('resultsCard');
+    const tableHeader = document.getElementById('tableHeader');
+    const tableBody = document.getElementById('tableBody');
+    const emptyState = document.getElementById('emptyState');
+    const statusArea = document.getElementById('statusArea');
+    const resultCount = document.getElementById('resultCount');
 
+    searchForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = searchInput.value.trim();
       if (!query) return;
 
-      tbody.innerHTML = '';
-      table.classList.add('hidden');
-      statusMsg.classList.remove('hidden');
-      statusMsg.innerText = 'Searching Database...';
+      // Reset Views
+      loading.classList.remove('hidden');
+      resultsCard.classList.add('hidden');
+      emptyState.classList.add('hidden');
+      statusArea.classList.add('hidden');
 
       try {
         const response = await fetch(`/.netlify/functions/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Search request failed');
+
         const csvText = await response.text();
-
-        if (!response.ok) {
-          throw new Error(`Server Error (${response.status}): ${csvText}`);
-        }
-
-        if (!csvText.trim()) {
-          statusMsg.innerText = 'No records found.';
-          return;
-        }
-
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: function(results) {
-            const rows = results.data;
-
-            if (rows.length === 0) {
-              statusMsg.innerText = 'No records found.';
-              return;
-            }
-
-            statusMsg.innerText = `Found ${rows.length} record(s).`;
-            table.classList.remove('hidden');
-
-            rows.forEach(item => {
-              const tr = document.createElement('tr');
-              tr.className = 'border-b hover:bg-gray-50';
-              tr.innerHTML = `
-                <td class="p-2 border font-semibold">${item.account || ''}</td>
-                <td class="p-2 border">${item.subscriber_name || ''}</td>
-                <td class="p-2 border">${item.custoemr_phone_number || ''}</td>
-                <td class="p-2 border">${item.station_code || ''}</td>
-                <td class="p-2 border">${item.VMY_Code || ''}</td>
-                <td class="p-2 border">${item.technical_name || ''}</td>
-                <td class="p-2 border text-xs">${item.address || ''}</td>
-              `;
-              tbody.appendChild(tr);
-            });
-          }
-        });
-
+        parseAndDisplayCSV(csvText);
       } catch (err) {
-        statusMsg.innerText = err.message;
+        alert("Error fetching data: " + err.message);
+      } finally {
+        loading.classList.add('hidden');
       }
+    });
+
+    function parseAndDisplayCSV(csvText) {
+      const lines = csvText.trim().split('\n').filter(line => line.length > 0);
+
+      if (lines.length <= 1) {
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      // Simple CSV Parser considering quotes
+      const parseCSVLine = (text) => {
+        const result = [];
+        let cur = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (c === '"') {
+            inQuotes = !inQuotes;
+          } else if (c === ',' && !inQuotes) {
+            result.push(cur.trim().replace(/^"|"$/g, ''));
+            cur = '';
+          } else {
+            cur += c;
+          }
+        }
+        result.push(cur.trim().replace(/^"|"$/g, ''));
+        return result;
+      };
+
+      const headers = parseCSVLine(lines[0]);
+      const rows = lines.slice(1).map(parseCSVLine);
+
+      // Render Table Headers
+      tableHeader.innerHTML = `
+        <tr>
+          ${headers.map(h => `<th class="px-4 py-3 whitespace-nowrap">${h.replace(/_/g, ' ')}</th>`).join('')}
+        </tr>
+      `;
+
+      // Render Table Rows
+      tableBody.innerHTML = rows.map((row, idx) => `
+        <tr class="hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}">
+          ${row.map(cell => `<td class="px-4 py-3 whitespace-nowrap font-medium text-slate-700">${cell || '-'}</td>`).join('')}
+        </tr>
+      `).join('');
+
+      resultCount.textContent = `Found ${rows.length} record(s)`;
+      statusArea.classList.remove('hidden');
+      resultsCard.classList.remove('hidden');
     }
   </script>
 </body>
