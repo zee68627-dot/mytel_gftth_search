@@ -18,74 +18,99 @@ async function connectToDatabase(uri) {
 
 function convertToCSV(items) {
   if (!items || items.length === 0) return "";
-  
-  const headers = ["account", "subscriber_name", "custoemr_phone_number", "station_code", "VMY_Code", "technical_name", "address"];
+
+  // Output CSV တွင် ပါဝင်စေလိုသော Header များ
+  const headers = [
+    "account", 
+    "subscriber_name", 
+    "custoemr_phone_number", 
+    "station_code", 
+    "VMY_Code", 
+    "branch", 
+    "partner_name", 
+    "device_code", 
+    "port_on_card", 
+    "port_splitter", 
+    "subscriber_node", 
+    "cable_length", 
+    "ont_serial", 
+    "technician_name", 
+    "technical_phone_number", 
+    "department", 
+    "address", 
+    "lat_long"
+  ];
+
   const csvRows = [];
-  
   csvRows.push(headers.join(","));
-  
+
   for (const item of items) {
     const values = headers.map(header => {
       let val = item[header] || item[header.toLowerCase()] || "";
-      val = String(val).replace(/"/g, '""');
+      val = String(val).replace(/"/g, '""'); // CSV Double Quotes escaping
       return `"${val}"`;
     });
     csvRows.push(values.join(","));
   }
-  
+
   return csvRows.join("\n");
 }
 
 exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-
+  // CORS Headers
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'text/csv; charset=utf-8'
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'text/csv'
   };
 
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
   }
 
-  const query = event.queryStringParameters.q;
-  if (!query) {
-    return {
-      statusCode: 400,
-      headers: { ...headers, 'Content-Type': 'text/plain' },
-      body: 'Search query is required'
-    };
-  }
-
   try {
+    const q = event.queryStringParameters ? event.queryStringParameters.q : '';
+
+    if (!q || q.trim() === '') {
+      return {
+        statusCode: 200,
+        headers,
+        body: ''
+      };
+    }
+
     const client = await connectToDatabase(MONGODB_URI);
     const db = client.db('mytel_ftth_db');
     const collection = db.collection('subscribers');
 
-    const results = await collection.find({
-      $or: [
-        { account: { $regex: query,$options: 'i' } },
-        { vmy_code: { $regex: query,$options: 'i' } },
-        { station_code: { $regex: query,$options: 'i' } },
-        { custoemr_phone_number: { $regex: query,$options: 'i' } },
-        { subscriber_name: { $regex: query,$options: 'i' } },
-        { VMY_Code: { $regex: query,$options: 'i' } }
-      ]
-    }).limit(50).toArray();
+    const regexQuery = { $regex: q.trim(),$options: 'i' };
 
-    const csvString = convertToCSV(results);
+    // Index တင်ထားသော Field ၄ ခုတွင်သာ သီးသန့် ရှာဖွေမည်
+    const mongoQuery = {
+      $or: [
+        { account: regexQuery },
+        { station_code: regexQuery },
+        { VMY_Code: regexQuery },
+        { custoemr_phone_number: regexQuery }
+      ]
+    };
+
+    const results = await collection.find(mongoQuery).toArray();
+    const csvData = convertToCSV(results);
 
     return {
       statusCode: 200,
       headers,
-      body: csvString
+      body: csvData
     };
+
   } catch (error) {
+    console.error('Search error:', error);
     return {
       statusCode: 500,
-      headers: { ...headers, 'Content-Type': 'text/plain' },
-      body: error.message
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Internal Server Error', details: error.message })
     };
   }
 };
