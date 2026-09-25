@@ -24,7 +24,7 @@ function convertToCSV(items) {
     "account", "subscriber_name", "custoemr_phone_number", "station_code", 
     "VMY_Code", "branch", "partner_name", "device_code", "port_on_card", 
     "port_splitter", "subscriber_node", "cable_length", "ont_serial", 
-    "technical_name", "technical_phone_number", "department", "address", "lat_long"
+    "technical_name", "technical_phone_number", "department", "address"
   ];
 
   const csvRows = [];
