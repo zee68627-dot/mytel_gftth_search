@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
         continue;
       }
 
-      if (row.length === headers.length) {
+      if (row.length >= headers.length) {
         const item = {};
         headers.forEach((h, idx) => {
           item[h] = row[idx] ? row[idx].trim() : '';
@@ -95,21 +95,28 @@ function parseCsvLine(line) {
   return row;
 }
 
-// Convert JSON array back to CSV response dynamically based on original headers
-function convertToCSV(items, headers) {
+// Convert JSON array back to CSV response
+function convertToCSV(items, originalHeaders) {
   if (!items || items.length === 0) return "";
 
-  // If location is not in headers list, dynamically include it
-  let exportHeaders = [...headers];
-  if (!exportHeaders.includes("location")) {
-    exportHeaders.push("location");
+  // MongoDB / CSV ထဲမှာရှိတဲ့ Column ခေါင်းစဉ်များ (location အပါအဝင်)
+  let headers = originalHeaders && originalHeaders.length > 0 ? originalHeaders : [
+    "STT", "account", "department", "subscriber_name", "custoemr_phone_number", 
+    "address", "location", "device_code", "port_on_card", "port_splitter", "subscriber_node", 
+    "cable_length", "ont_serial", "station_code", "branch", "partner_name", 
+    "technical_name", "VMY_Code", "technical_phone_number"
+  ];
+
+  // ဇယားထဲမှာ location မပါသေးရင် အလိုအလျောက် ပေါင်းထည့်ပေးခြင်း
+  if (!headers.includes("location")) {
+    headers.push("location");
   }
 
   const csvRows = [];
-  csvRows.push(exportHeaders.join(","));
+  csvRows.push(headers.join(","));
 
   for (const item of items) {
-    const values = exportHeaders.map(header => {
+    const values = headers.map(header => {
       let val = item[header] !== undefined && item[header] !== null ? item[header] : "";
       // Clean newline characters inside text
       val = String(val).replace(/[\r\n]+/g, " ").replace(/"/g, '""');
