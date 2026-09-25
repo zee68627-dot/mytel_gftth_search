@@ -1,38 +1,117 @@
-const { MongoClient } = require('mongodb');
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
 
-const MONGODB_URI = "mongodb+srv://zee68627_db_user:wHr3ymUSeZm1Kmqu@cluster0.rzyhepp.mongodb.net/mytel_ftth_db?retryWrites=true&w=majority";
+exports.handler = async (event, context) => {
+  const query = event.queryStringParameters.q ? event.queryStringParameters.q.trim().toLowerCase() : '';
 
-let cachedClient = null;
+  if (!query) {
+    return {
+      statusCode: 400,
+      body: 'Query parameter "q" is required.'
+    };
+  }
 
-async function connectToDatabase(uri) {
-  if (cachedClient) return cachedClient;
+  // path to CSV file
+  const csvFilePath = path.join(__dirname, 'final testing2.csv');
 
-  const client = await MongoClient.connect(uri, {
-    serverSelectionTimeoutMS: 5000,
-    connectTimeoutMS: 10000,
-  });
+  if (!fs.existsSync(csvFilePath)) {
+    return {
+      statusCode: 500,
+      body: 'Data file not found.'
+    };
+  }
 
-  cachedClient = client;
-  return client;
+  try {
+    const results = [];
+    const fileStream = fs.createReadStream(csvFilePath);
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+
+    let headers = [];
+    let isHeader = true;
+
+    for await (const line of rl) {
+      if (!line.trim()) continue;
+
+      // Simple CSV Splitter
+      const row = parseCsvLine(line);
+
+      if (isHeader) {
+        headers = row.map(h => h.trim());
+        isHeader = false;
+        continue;
+      }
+
+      if (row.length === headers.length) {
+        const item = {};
+        headers.forEach((h, idx) => {
+          item[h] = row[idx] ? row[idx].trim() : '';
+        });
+
+        // Search in account, station_code, VMY_Code, or subscriber_name
+        const acc = (item.account || '').toLowerCase();
+        const station = (item.station_code || '').toLowerCase();
+        const vmy = (item.VMY_Code || item.vmy_code || '').toLowerCase();
+        const name = (item.subscriber_name || '').toLowerCase();
+
+        if (acc.includes(query) || station.includes(query) || vmy.includes(query) || name.includes(query)) {
+          results.push(item);
+        }
+      }
+    }
+
+    const csvOutput = convertToCSV(results, headers);
+
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: csvOutput
+    };
+
+  } catch (error) {
+    console.error('Error reading CSV:', error);
+    return {
+      statusCode: 500,
+      body: 'Internal server error'
+    };
+  }
+};
+
+// Line parse helper
+function parseCsvLine(line) {
+  const regex = /(?:^|,)(?:"([^"]*)"|([^,]*))/g;
+  const row = [];
+  let match;
+  while ((match = regex.exec(line)) !== null) {
+    let val = match[1] !== undefined ? match[1] : match[2];
+    row.push(val ? val.trim() : '');
+  }
+  return row;
 }
 
-function convertToCSV(items) {
+// Convert JSON array back to CSV response dynamically based on original headers
+function convertToCSV(items, headers) {
   if (!items || items.length === 0) return "";
 
-  const headers = [
-    "STT", "account", "department", "subscriber_name", "custoemr_phone_number", 
-    "address", "device_code", "port_on_card", "port_splitter", "subscriber_node", 
-    "cable_length", "ont_serial", "station_code", "branch", "partner_name", 
-    "technical_name", "VMY_Code", "technical_phone_number"
-  ];
+  // If location is not in headers list, dynamically include it
+  let exportHeaders = [...headers];
+  if (!exportHeaders.includes("location")) {
+    exportHeaders.push("location");
+  }
 
   const csvRows = [];
-  csvRows.push(headers.join(","));
+  csvRows.push(exportHeaders.join(","));
 
   for (const item of items) {
-    const values = headers.map(header => {
+    const values = exportHeaders.map(header => {
       let val = item[header] !== undefined && item[header] !== null ? item[header] : "";
-      // Clean newline characters inside field text
+      // Clean newline characters inside text
       val = String(val).replace(/[\r\n]+/g, " ").replace(/"/g, '""');
       return `"${val}"`;
     });
@@ -41,58 +120,3 @@ function convertToCSV(items) {
 
   return csvRows.join("\n");
 }
-
-exports.handler = async (event, context) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Content-Type': 'text/csv'
-  };
-
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
-
-  try {
-    const q = event.queryStringParameters ? event.queryStringParameters.q : '';
-
-    if (!q || q.trim() === '') {
-      return { statusCode: 200, headers, body: '' };
-    }
-
-    const client = await connectToDatabase(MONGODB_URI);
-    const db = client.db('mytel_ftth_db');
-    const collection = db.collection('subscribers');
-
-    const searchKey = q.trim();
-    const exactRegex = new RegExp(`^${searchKey}$`, 'i');
-    const partialRegex = new RegExp(searchKey, 'i');
-
-    const mongoQuery = {
-      $or: [
-        { account: exactRegex },
-        { station_code: exactRegex },
-        { VMY_Code: exactRegex },
-        { vmy_code: exactRegex },
-        { custoemr_phone_number: exactRegex }
-      ]
-    };
-
-    const results = await collection.find(mongoQuery).toArray();
-    const csvData = convertToCSV(results);
-
-    return {
-      statusCode: 200,
-      headers,
-      body: csvData
-    };
-
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Internal Server Error', details: error.message })
-    };
-  }
-};
