@@ -145,32 +145,45 @@
       cardsContainer.innerHTML = '';
 
       data.forEach((item, index) => {
-        // Phone Call Helper
+        // Customer Phone
         const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
         const custPhoneHTML = custPhone 
           ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
           : '-';
 
-        // Technical Name Check
+        // Technical Name
         const techName = item.technical_name || item.technician_name || item.tech_name || '-';
         
-        // Technical Phone Check
+        // Technical Phone
         const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
         const techPhoneHTML = techPhone
           ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
           : '-'; 
-      // 2. Lat/Long & Google Maps Link Helper
-      let mapLinkHTML = '-';
-      const latLongVal = item.lat_long || item.lat_lng || item.location || '';
-      
-      if (latLongVal) {
-        const cleanCoords = latLongVal.replace(/\s+/g, '');
-        mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${latLongVal}</a>`;
-      } else if (item.latitude && item.longitude) {
-        const coords = `${item.latitude},${item.longitude}`;
-        mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${coords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${coords}</a>`;
-      }
-    
+
+        // Lat/Long Parsing Logic
+        let mapLinkHTML = '-';
+        let foundCoords = '';
+
+        // 1. Direct Field Check
+        if (item.lat_long && String(item.lat_long).trim() !== '') {
+          foundCoords = String(item.lat_long).trim();
+        }
+
+        // 2. Extract from Address Field if direct lat_long is missing
+        const fullAddr = String(item.address || item.Address || '');
+        if (!foundCoords && fullAddr) {
+          // Regex matching patterns like "16.7954369,96.20539" or "16.812876, 96.170910"
+          const match = fullAddr.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{2,3}\.\d+)/);
+          if (match) {
+            foundCoords = `${match[1].trim()},${match[2].trim()}`;
+          }
+        }
+
+        // Render Map Link
+        if (foundCoords && foundCoords !== '-') {
+          const cleanCoords = foundCoords.replace(/;/g, '').replace(/\s+/g, '');
+          mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-bold inline-flex items-center gap-1">📍 ${cleanCoords}</a>`;
+        }
 
         const cardHTML = `
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
@@ -199,7 +212,7 @@
 
               <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
               <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
-              <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${item.address || item.Address || '-'}</div>
+              <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${fullAddr || '-'}</div>
               <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
             </div>
           </div>
