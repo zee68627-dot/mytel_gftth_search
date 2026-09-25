@@ -140,34 +140,51 @@
       }
     }
 
-    // Render All Detail Cards directly
+    // Render All Detail Cards directly (Address Lat/Long Extractor Included)
     function renderDetailCards(data) {
       const cardsContainer = document.getElementById('cardsContainer');
       cardsContainer.innerHTML = '';
 
       data.forEach((item, index) => {
         // Phone Call Helper
-        const custPhone = item.custoemr_phone_number || item.customer_phone || '';
+        const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
         const custPhoneHTML = custPhone 
           ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
           : '-';
 
-        const techName = item.technician_name || item.tech_name || item.technical_name || '-';
+        // Technical Name (Database key: technical_name)
+        const techName = item.technical_name || item.technician_name || item.tech_name || '-';
+        
+        // Technical Phone
         const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
         const techPhoneHTML = techPhone
           ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
           : '-'; 
 
-        // Lat/Long & Google Maps Link Helper
+        // Lat/Long & Google Maps Link Parsing
         let mapLinkHTML = '-';
-        const latLongVal = item.lat_long || item.lat_lng || item.location || '';
-        
-        if (latLongVal) {
-          const cleanCoords = latLongVal.replace(/\s+/g, '');
-          mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${latLongVal}</a>`;
+        let foundCoords = '';
+
+        // 1. Direct Lat/Long Fields Check
+        if (item.lat_long || item.lat_lng || item.location) {
+          foundCoords = (item.lat_long || item.lat_lng || item.location).trim();
         } else if (item.latitude && item.longitude) {
-          const coords = `${item.latitude},${item.longitude}`;
-          mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${coords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${coords}</a>`;
+          foundCoords = `${item.latitude},${item.longitude}`;
+        } 
+        
+        // 2. Extract Lat/Long from Address field (e.g., "16.7954369,96.20539;...")
+        if (!foundCoords && (item.address || item.Address)) {
+          const fullAddr = item.address || item.Address;
+          const match = fullAddr.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
+          if (match) {
+            foundCoords = `${match[1]},${match[2]}`;
+          }
+        }
+
+        // Render Google Maps Link
+        if (foundCoords) {
+          const cleanCoords = foundCoords.replace(/\s+/g, '');
+          mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${foundCoords}</a>`;
         }
 
         const cardHTML = `
@@ -192,14 +209,15 @@
               <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length : '-'}</div>
               <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
               <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
-              <div><strong>Technician Name:</strong> ${item.technical_name || '-'}</div>
+              <div><strong>Technician Name:</strong> ${techName}</div>
               <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
 
-
               <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
-              <div><strong>Department:</strong> ${item.department || '-'}</div>
+              <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
               <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${item.address || '-'}</div>
               <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
+            </div>
+          </div>
         `;
 
         cardsContainer.innerHTML += cardHTML;
