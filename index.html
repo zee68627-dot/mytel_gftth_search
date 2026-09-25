@@ -140,84 +140,78 @@
       }
     }
     function renderDetailCards(data) {
-      const cardsContainer = document.getElementById('cardsContainer');
-      cardsContainer.innerHTML = '';
+  const cardsContainer = document.getElementById('cardsContainer');
+  cardsContainer.innerHTML = '';
 
-      data.forEach((item, index) => {
-        // Customer Phone Number
-        const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
-        const custPhoneHTML = custPhone 
-          ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
-          : '-';
+  data.forEach((item, index) => {
+    // Customer Phone
+    const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
+    const custPhoneHTML = custPhone 
+      ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
+      : '-';
 
-        // Technical Info
-        const techName = item.technical_name || item.technician_name || item.tech_name || '-';
-        const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
-        const techPhoneHTML = techPhone
-          ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
-          : '-'; 
+    // Technical Info
+    const techName = item.technical_name || item.technician_name || item.tech_name || '-';
+    const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
+    const techPhoneHTML = techPhone
+      ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
+      : '-'; 
 
-        // Address ထဲမှ Lat/Long Coordinates ရှာဖွေခြင်း
-        let mapLinkHTML = '-';
-        let foundCoords = '';
+    // Address Parsing & Extraction
+    let rawAddress = String(item.address || item.Address || '');
+    
+    // Line breaks (\n, \r) များကို Space အဖြစ် ပြောင်းလဲခြင်း
+    let cleanAddress = rawAddress.replace(/[\r\n]+/g, ' ').trim();
 
-        // 1. Direct Field Check (အကယ်၍ ပါခဲ့လျှင်)
-        if (item.lat_long && String(item.lat_long).trim() !== '') {
-          foundCoords = String(item.lat_long).trim();
-        }
+    let mapLinkHTML = '-';
+    let foundCoords = '';
 
-        // 2. CSV မှာ lat_long မပါရင် address ထဲကနေ Regex နဲ့ ဆွဲထုတ်ခြင်း
-        const fullAddr = String(item.address || item.Address || '');
-        if (!foundCoords && fullAddr) {
-          // "16.7954369,96.20539;" သို့မဟုတ် "16.812876, 96.170910" Format များကို ဖမ်းယူသည့် Regex
-          const match = fullAddr.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{2,3}\.\d+)/);
-          if (match) {
-            foundCoords = `${match[1].trim()},${match[2].trim()}`;
-          }
-        }
-
-        // Location Map Link ပြသရန်
-        if (foundCoords && foundCoords !== '-') {
-          const cleanCoords = foundCoords.replace(/;/g, '').replace(/\s+/g, '');
-          mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-bold inline-flex items-center gap-1">📍 ${cleanCoords}</a>`;
-        }
-
-        const cardHTML = `
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
-            <h3 class="text-lg font-bold text-blue-900 border-b border-blue-200 pb-2 mb-4">
-              Subscriber Details ${data.length > 1 ? `#${index + 1}` : ''}
-            </h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div><strong>Account:</strong> ${item.account || '-'}</div>
-              <div><strong>Subscriber Name:</strong> ${item.subscriber_name || '-'}</div>
-              <div><strong>Phone Number:</strong> ${custPhoneHTML}</div>
-              <div><strong>Station Code:</strong> ${item.station_code || '-'}</div>
-              <div><strong>Branch:</strong> ${item.branch || '-'}</div>
-              <div><strong>Partner Name:</strong> ${item.partner_name || '-'}</div>
-              
-              <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Technical Info</div>
-              <div><strong>Device Code:</strong> ${item.device_code || '-'}</div>
-              <div><strong>Port on Card:</strong> ${item.port_on_card || '-'}</div>
-              <div><strong>Port Splitter:</strong> ${item.port_splitter || '-'}</div>
-              <div><strong>Subscriber Node:</strong> ${item.subscriber_node || '-'}</div>
-              <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length : '-'}</div>
-              <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
-              <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
-              <div><strong>Technician Name:</strong> ${techName}</div>
-              <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
-
-              <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
-              <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
-              <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${fullAddr || '-'}</div>
-              <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
-            </div>
-          </div>
-        `;
-
-        cardsContainer.innerHTML += cardHTML;
-      });
+    // Latitude & Longitude ကို Address စာသား ဘယ်နေရာမှာပဲရှိရှိ ရှာဖွေသည့် Regex (ဥပမာ: 16.7954369,96.20539)
+    const coordMatch = cleanAddress.match(/(1[3-9]\.\d+)\s*,\s*(9[2-8]\.\d+)/);
+    if (coordMatch) {
+      foundCoords = `${coordMatch[1].trim()},${coordMatch[2].trim()}`;
     }
+
+    if (foundCoords) {
+      mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${foundCoords}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-bold inline-flex items-center gap-1">📍 ${foundCoords}</a>`;
+    }
+
+    const cardHTML = `
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
+        <h3 class="text-lg font-bold text-blue-900 border-b border-blue-200 pb-2 mb-4">
+          Subscriber Details ${data.length > 1 ? `#${index + 1}` : ''}
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div><strong>Account:</strong> ${item.account || '-'}</div>
+          <div><strong>Subscriber Name:</strong> ${item.subscriber_name || '-'}</div>
+          <div><strong>Phone Number:</strong> ${custPhoneHTML}</div>
+          <div><strong>Station Code:</strong> ${item.station_code || '-'}</div>
+          <div><strong>Branch:</strong> ${item.branch || '-'}</div>
+          <div><strong>Partner Name:</strong> ${item.partner_name || '-'}</div>
+          
+          <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Technical Info</div>
+          <div><strong>Device Code:</strong> ${item.device_code || '-'}</div>
+          <div><strong>Port on Card:</strong> ${item.port_on_card || '-'}</div>
+          <div><strong>Port Splitter:</strong> ${item.port_splitter || '-'}</div>
+          <div><strong>Subscriber Node:</strong> ${item.subscriber_node || '-'}</div>
+          <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length : '-'}</div>
+          <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
+          <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
+          <div><strong>Technician Name:</strong> ${techName}</div>
+          <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
+
+          <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
+          <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
+          <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${cleanAddress || '-'}</div>
+          <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
+        </div>
+      </div>
+    `;
+
+    cardsContainer.innerHTML += cardHTML;
+  });
+}
   </script>
 </body>
 </html>
