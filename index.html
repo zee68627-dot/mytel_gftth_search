@@ -140,7 +140,7 @@
       }
     }
 
-    // Render All Detail Cards directly (Address Lat/Long Extractor Included)
+    // Render All Detail Cards directly
     function renderDetailCards(data) {
       const cardsContainer = document.getElementById('cardsContainer');
       cardsContainer.innerHTML = '';
@@ -152,10 +152,10 @@
           ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
           : '-';
 
-        // Technical Name (Database key: technical_name)
+        // Technical Name Check
         const techName = item.technical_name || item.technician_name || item.tech_name || '-';
         
-        // Technical Phone
+        // Technical Phone Check
         const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
         const techPhoneHTML = techPhone
           ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
@@ -167,21 +167,22 @@
 
         // 1. Direct Lat/Long Fields Check
         if (item.lat_long || item.lat_lng || item.location) {
-          foundCoords = (item.lat_long || item.lat_lng || item.location).trim();
+          foundCoords = String(item.lat_long || item.lat_lng || item.location).trim();
         } else if (item.latitude && item.longitude) {
           foundCoords = `${item.latitude},${item.longitude}`;
         } 
         
-        // 2. Extract Lat/Long from Address field (e.g., "16.7954369,96.20539;...")
+        // 2. Extract Lat/Long from Address field (Supports optional space after comma)
         if (!foundCoords && (item.address || item.Address)) {
-          const fullAddr = item.address || item.Address;
+          const fullAddr = String(item.address || item.Address);
+          // Enhanced Regex to match "16.812876, 96.170910" or "16.812876,96.170910"
           const match = fullAddr.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
           if (match) {
-            foundCoords = `${match[1]},${match[2]}`;
+            foundCoords = `${match[1].trim()},${match[2].trim()}`;
           }
         }
 
-        // Render Google Maps Link
+        // Render Map Link if coordinates found
         if (foundCoords) {
           const cleanCoords = foundCoords.replace(/\s+/g, '');
           mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-medium inline-flex items-center gap-1">📍 ${foundCoords}</a>`;
