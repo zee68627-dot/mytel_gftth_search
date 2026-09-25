@@ -18,6 +18,8 @@ async function connectToDatabase(uri) {
 
 function convertToCSV(items) {
   if (!items || items.length === 0) return "";
+
+  // MongoDB ထဲက Field နာမည် အတိအကျများ
   const headers = [
     "account", "subscriber_name", "custoemr_phone_number", "station_code", 
     "VMY_Code", "branch", "partner_name", "device_code", "port_on_card", 
@@ -30,7 +32,8 @@ function convertToCSV(items) {
 
   for (const item of items) {
     const values = headers.map(header => {
-      let val = item[header] || item[header.toLowerCase()] || "";
+      let val = item[header] !== undefined && item[header] !== null ? item[header] : "";
+      // Address ထဲမှာ ကော်မာ သို့မဟုတ် Double Quotes ပါရင် CSV မပျက်အောင် Escape လုပ်ခြင်း
       val = String(val).replace(/"/g, '""');
       return `"${val}"`;
     });
