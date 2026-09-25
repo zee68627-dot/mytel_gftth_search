@@ -192,15 +192,14 @@
               <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length : '-'}</div>
               <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
               <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
-              <div><strong>Technician Name:</strong> ${techName}</div>
+              <div><strong>Technician Name:</strong> ${item.technicianName || '-'}</div>
               <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
 
+
               <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
-              <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
+              <div><strong>Department:</strong> ${item.department || '-'}</div>
               <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${item.address || '-'}</div>
               <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
-            </div>
-          </div>
         `;
 
         cardsContainer.innerHTML += cardHTML;
