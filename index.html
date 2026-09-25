@@ -3,215 +3,182 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MYTEL FTTH DATA</title>
-  
-  <!-- 1. Tailwind CSS -->
+  <title>MYTEL FTTH DATA SEARCH</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 2. FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 min-h-screen p-4 md:p-8">
 
-  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6">
-    
-    <!-- Header Section -->
-    <div class="border-b pb-4 mb-6 text-center">
-      <p class="text-xs text-gray-500 font-semibold tracking-wide uppercase">Developed by Min Khant Zaw</p>
-      <h1 class="text-2xl font-bold text-blue-900 mt-1">MYTEL FTTH DATA</h1>
-      <h2 class="text-sm text-gray-600">Account / Station / VMY Search</h2>
+  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-md p-6 md:p-8">
+    <!-- Header -->
+    <div class="text-center mb-6">
+      <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">DEVELOPED BY MIN KHANT ZAW</p>
+      <h1 class="text-2xl md:text-3xl font-extrabold text-blue-900 mt-1">MYTEL FTTH DATA</h1>
+      <p class="text-xs text-gray-500 mt-1">Account / Station / VMY Search</p>
     </div>
 
-    <!-- Search Input Section -->
+    <!-- Search Form -->
     <div class="flex gap-2 mb-6">
       <input 
         type="text" 
         id="searchInput" 
-        placeholder="Enter Account, Station Code or VMY Code..." 
-        class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        onkeypress="if(event.key === 'Enter') handleSearch()"
+        placeholder="Enter Account, Station, or VMY Code..." 
+        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onkeypress="if(event.key === 'Enter') performSearch()"
       />
       <button 
-        onclick="handleSearch()" 
-        class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition flex items-center gap-2 cursor-pointer"
+        onclick="performSearch()" 
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg flex items-center gap-2 transition"
       >
-        <i class="fa-solid fa-magnifying-glass"></i> Search
+        🔍 Search
       </button>
     </div>
 
-    <!-- Message / Status Area -->
-    <div id="statusMessage" class="text-sm text-gray-500 mb-4 hidden"></div>
+    <!-- Status Message -->
+    <div id="statusMessage" class="text-sm text-gray-600 mb-4 font-semibold hidden"></div>
 
-    <!-- Container for Subscriber Detail Cards -->
-    <div id="cardsContainer" class="flex flex-col gap-6">
-      <!-- Dynamic Detail Cards Will Appear Here -->
-    </div>
-
+    <!-- Results Container -->
+    <div id="cardsContainer" class="space-y-6"></div>
   </div>
 
-  <!-- Javascript Code -->
   <script>
-    let searchResultsData = [];
-
-    // Simple CSV Parser
-    function parseCSV(csvText) {
-      const lines = csvText.trim().split('\n').filter(line => line.length > 0);
-      if (lines.length <= 1) return [];
-
-      const parseCSVLine = (text) => {
-        const result = [];
-        let cur = '';
-        let inQuotes = false;
-        for (let i = 0; i < text.length; i++) {
-          const c = text[i];
-          if (c === '"') {
-            inQuotes = !inQuotes;
-          } else if (c === ',' && !inQuotes) {
-            result.push(cur.trim().replace(/^"|"$/g, ''));
-            cur = '';
-          } else {
-            cur += c;
-          }
-        }
-        result.push(cur.trim().replace(/^"|"$/g, ''));
-        return result;
-      };
-
-      const headers = parseCSVLine(lines[0]);
-      const rows = lines.slice(1).map(parseCSVLine);
-
-      return rows.map(row => {
-        const obj = {};
-        headers.forEach((header, index) => {
-          obj[header] = row[index] || '';
-        });
-        return obj;
-      });
-    }
-
-    // Search Logic (Netlify Serverless Function + Strict Client Filtering)
-    async function handleSearch() {
-      const queryInput = document.getElementById('searchInput');
-      const query = queryInput ? queryInput.value.trim() : '';
+    async function performSearch() {
+      const query = document.getElementById('searchInput').value.trim();
       const statusMsg = document.getElementById('statusMessage');
       const cardsContainer = document.getElementById('cardsContainer');
 
       if (!query) {
-        alert('ကျေးဇူးပြု၍ ရှာဖွေလိုသော အချက်အလက် ရိုက်ထည့်ပါ');
+        statusMsg.innerText = "ကျေးဇူးပြု၍ ရှာဖွေလိုသော အချက်အလက် ထည့်သွင်းပါ။";
+        statusMsg.classList.remove('hidden');
         return;
       }
 
-      if (statusMsg) {
-        statusMsg.classList.remove('hidden');
-        statusMsg.innerText = 'Searching data...';
-      }
-      if (cardsContainer) cardsContainer.innerHTML = '';
+      statusMsg.innerText = "Searching data...";
+      statusMsg.classList.remove('hidden');
+      cardsContainer.innerHTML = '';
 
       try {
         const response = await fetch(`/.netlify/functions/search?q=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('Search failed with status: ' + response.status);
+        
+        if (!response.ok) {
+          throw new Error("Server error or data fetch failed");
+        }
 
         const csvText = await response.text();
-        let rawData = parseCSV(csvText);
+        const data = parseCSV(csvText);
 
-        // Address/Remark များတွင် ပါဝင်မှုကြောင့် မှားယွင်းမလာစေရန် Target Fields တွင်သာ Strict Filter လုပ်ခြင်း
-        const lowerQuery = query.toLowerCase();
-        const filteredResults = rawData.filter(item => {
-          const acc = (item.account || item.Account || '').toLowerCase();
-          const station = (item.station_code || item.Station_Code || '').toLowerCase();
-          const vmy = (item.VMY_Code || item.vmy_code || '').toLowerCase();
-          const phone = (item.custoemr_phone_number || item.customer_phone || '').toLowerCase();
-
-          return acc.includes(lowerQuery) || 
-                 station.includes(lowerQuery) || 
-                 vmy.includes(lowerQuery) || 
-                 phone.includes(lowerQuery);
-        });
-
-        if (filteredResults.length === 0) {
-          if (statusMsg) statusMsg.innerText = 'No records found for "' + query + '"';
+        if (data.length === 0) {
+          statusMsg.innerText = "Found 0 record(s).";
           return;
         }
 
-        if (statusMsg) statusMsg.innerText = `Found ${filteredResults.length} record(s).`;
-        renderDetailCards(filteredResults);
+        statusMsg.innerText = `Found ${data.length} record(s).`;
+        renderDetailCards(data);
 
-      } catch (err) {
-        if (statusMsg) statusMsg.innerText = 'Connection error: ' + err.message;
+      } catch (error) {
+        console.error(error);
+        statusMsg.innerText = "An error occurred while fetching data.";
       }
     }
-    function renderDetailCards(data) {
-  const cardsContainer = document.getElementById('cardsContainer');
-  cardsContainer.innerHTML = '';
 
-  data.forEach((item, index) => {
-    // Customer Phone
-    const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
-    const custPhoneHTML = custPhone 
-      ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
-      : '-';
+    // CSV Parser Function
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      if (lines.length <= 1) return [];
 
-    // Technical Info
-    const techName = item.technical_name || item.technician_name || item.tech_name || '-';
-    const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
-    const techPhoneHTML = techPhone
-      ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
-      : '-'; 
+      const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+      const results = [];
 
-    // Address Parsing & Extraction
-    let rawAddress = String(item.address || item.Address || '');
-    
-    // Line breaks (\n, \r) များကို Space အဖြစ် ပြောင်းလဲခြင်း
-    let cleanAddress = rawAddress.replace(/[\r\n]+/g, ' ').trim();
-
-    let mapLinkHTML = '-';
-    let foundCoords = '';
-
-    // Latitude & Longitude ကို Address စာသား ဘယ်နေရာမှာပဲရှိရှိ ရှာဖွေသည့် Regex (ဥပမာ: 16.7954369,96.20539)
-    const coordMatch = cleanAddress.match(/(1[3-9]\.\d+)\s*,\s*(9[2-8]\.\d+)/);
-    if (coordMatch) {
-      foundCoords = `${coordMatch[1].trim()},${coordMatch[2].trim()}`;
-    }
-
-    if (foundCoords) {
-      mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${foundCoords}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-bold inline-flex items-center gap-1">📍 ${foundCoords}</a>`;
-    }
-
-    const cardHTML = `
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
-        <h3 class="text-lg font-bold text-blue-900 border-b border-blue-200 pb-2 mb-4">
-          Subscriber Details ${data.length > 1 ? `#${index + 1}` : ''}
-        </h3>
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div><strong>Account:</strong> ${item.account || '-'}</div>
-          <div><strong>Subscriber Name:</strong> ${item.subscriber_name || '-'}</div>
-          <div><strong>Phone Number:</strong> ${custPhoneHTML}</div>
-          <div><strong>Station Code:</strong> ${item.station_code || '-'}</div>
-          <div><strong>Branch:</strong> ${item.branch || '-'}</div>
-          <div><strong>Partner Name:</strong> ${item.partner_name || '-'}</div>
-          
-          <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Technical Info</div>
-          <div><strong>Device Code:</strong> ${item.device_code || '-'}</div>
-          <div><strong>Port on Card:</strong> ${item.port_on_card || '-'}</div>
-          <div><strong>Port Splitter:</strong> ${item.port_splitter || '-'}</div>
-          <div><strong>Subscriber Node:</strong> ${item.subscriber_node || '-'}</div>
-          <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length : '-'}</div>
-          <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
-          <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
-          <div><strong>Technician Name:</strong> ${techName}</div>
-          <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
+        // CSV line splitting handling quotes
+        const regex = /(?:^|,)(?:"([^"]*)"|([^,]*))/g;
+        const row = [];
+        let match;
+        while ((match = regex.exec(lines[i])) !== null) {
+          let val = match[1] !== undefined ? match[1] : match[2];
+          row.push(val ? val.trim() : '');
+        }
 
-          <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
-          <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
-          <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${cleanAddress || '-'}</div>
-          <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
-        </div>
-      </div>
-    `;
+        if (row.length >= headers.length) {
+          const item = {};
+          headers.forEach((h, idx) => {
+            item[h] = row[idx] || '';
+          });
+          results.push(item);
+        }
+      }
+      return results;
+    }
 
-    cardsContainer.innerHTML += cardHTML;
-  });
-}
+    // Render Cards Function
+    function renderDetailCards(data) {
+      const cardsContainer = document.getElementById('cardsContainer');
+      cardsContainer.innerHTML = '';
+
+      data.forEach((item, index) => {
+        // Customer Phone
+        const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
+        const custPhoneHTML = custPhone 
+          ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
+          : '-';
+
+        // Technical Info
+        const techName = item.technical_name || item.technician_name || item.tech_name || '-';
+        const techPhone = item.technical_phone_number || item.tech_phone || item.technician_phone || '';
+        const techPhoneHTML = techPhone
+          ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
+          : '-'; 
+
+        // Address Handling
+        let rawAddress = String(item.address || item.Address || '');
+        let cleanAddress = rawAddress.replace(/[\r\n]+/g, ' ').trim();
+
+        // Location Column Handling
+        let rawLocation = String(item.location || item.Location || '').trim();
+        let mapLinkHTML = '-';
+
+        if (rawLocation && rawLocation !== '-') {
+          // Google Maps Search Link create
+          mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawLocation)}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-bold inline-flex items-center gap-1">📍 ${rawLocation}</a>`;
+        }
+
+        const cardHTML = `
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-5 shadow-sm">
+            <h3 class="text-lg font-bold text-blue-900 border-b border-blue-200 pb-2 mb-4">
+              Subscriber Details ${data.length > 1 ? `#${index + 1}` : ''}
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div><strong>Account:</strong> ${item.account || '-'}</div>
+              <div><strong>Subscriber Name:</strong> ${item.subscriber_name || '-'}</div>
+              <div><strong>Phone Number:</strong> ${custPhoneHTML}</div>
+              <div><strong>Station Code:</strong> ${item.station_code || '-'}</div>
+              <div><strong>Branch:</strong> ${item.branch || '-'}</div>
+              <div><strong>Partner Name:</strong> ${item.partner_name || '-'}</div>
+              
+              <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Technical Info</div>
+              <div><strong>Device Code:</strong> ${item.device_code || '-'}</div>
+              <div><strong>Port on Card:</strong> ${item.port_on_card || '-'}</div>
+              <div><strong>Port Splitter:</strong> ${item.port_splitter || '-'}</div>
+              <div><strong>Subscriber Node:</strong> ${item.subscriber_node || '-'}</div>
+              <div><strong>Cable Length:</strong> ${item.cable_length ? item.cable_length : '-'}</div>
+              <div><strong>ONT Serial:</strong> ${item.ont_serial || '-'}</div>
+              <div><strong>VMY Code:</strong> ${item.VMY_Code || item.vmy_code || '-'}</div>
+              <div><strong>Technician Name:</strong> ${techName}</div>
+              <div><strong>Technical Phone:</strong> ${techPhoneHTML}</div>
+
+              <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
+              <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
+              <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${cleanAddress || '-'}</div>
+              <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
+            </div>
+          </div>
+        `;
+
+        cardsContainer.innerHTML += cardHTML;
+      });
+    }
   </script>
 </body>
 </html>
