@@ -145,7 +145,7 @@
       cardsContainer.innerHTML = '';
 
       data.forEach((item, index) => {
-        // Customer Phone
+        // Phone Call Helper
         const custPhone = item.custoemr_phone_number || item.customer_phone || item.phone_number || '';
         const custPhoneHTML = custPhone 
           ? `<a href="tel:${custPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${custPhone}</a>`
@@ -160,31 +160,29 @@
           ? `<a href="tel:${techPhone}" class="text-blue-600 hover:underline font-semibold font-mono inline-flex items-center gap-1">📞 ${techPhone}</a>`
           : '-'; 
 
-        // Address Field safely check (Case Insensitive)
-        const fullAddress = String(item.address || item.Address || item.ADDRESS || '');
-
-        // Location Parsing Logic
+        // Lat/Long & Google Maps Link Parsing
         let mapLinkHTML = '-';
         let foundCoords = '';
 
-        // 1. Direct Lat/Long Fields
-        if (item.lat_long || item.LAT_LONG) foundCoords = String(item.lat_long || item.LAT_LONG).trim();
-        else if (item.lat_lng || item.LAT_LNG) foundCoords = String(item.lat_lng || item.LAT_LNG).trim();
-        else if (item.location || item.LOCATION) foundCoords = String(item.location || item.LOCATION).trim();
-        else if (item.latitude && item.longitude) foundCoords = `${item.latitude},${item.longitude}`;
-
-        // 2. Extract Lat/Long from Address text if direct field is missing
-        if (!foundCoords && fullAddress) {
-          // Matches "16.812876, 96.170910" or "16.812876,96.170910"
-          const match = fullAddress.match(/(-?\d{1,2}\.\d+)\s*,\s*(-?\d{2,3}\.\d+)/);
+        // 1. Direct Lat/Long Fields Check
+        if (item.lat_long || item.lat_lng || item.location) {
+          foundCoords = String(item.lat_long || item.lat_lng || item.location).trim();
+        } else if (item.latitude && item.longitude) {
+          foundCoords = `${item.latitude},${item.longitude}`;
+        } 
+        
+        // 2. Extract Lat/Long from Address field (Supports comma, semicolon, spaces)
+        if (!foundCoords && (item.address || item.Address)) {
+          const fullAddr = String(item.address || item.Address);
+          const match = fullAddr.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/);
           if (match) {
-            foundCoords = `${match[1]},${match[2]}`;
+            foundCoords = `${match[1].trim()},${match[2].trim()}`;
           }
         }
 
         // Render Map Link if coordinates found
         if (foundCoords && foundCoords !== '-') {
-          const cleanCoords = foundCoords.replace(/\s+/g, '');
+          const cleanCoords = foundCoords.replace(/;/g, '').replace(/\s+/g, '');
           mapLinkHTML = `<a href="https://www.google.com/maps/search/?api=1&query=${cleanCoords}" target="_blank" class="text-blue-600 hover:underline font-bold inline-flex items-center gap-1">📍 ${cleanCoords}</a>`;
         }
 
@@ -215,7 +213,7 @@
 
               <div class="col-span-1 md:col-span-2 border-t border-blue-200 pt-3 mt-2 font-bold text-blue-900">Customer Info</div>
               <div class="col-span-1 md:col-span-2"><strong>Department:</strong> ${item.department || '-'}</div>
-              <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${fullAddress || '-'}</div>
+              <div class="col-span-1 md:col-span-2"><strong>Address:</strong> ${item.address || item.Address || '-'}</div>
               <div class="col-span-1 md:col-span-2"><strong>Location (Map):</strong> ${mapLinkHTML}</div>
             </div>
           </div>
