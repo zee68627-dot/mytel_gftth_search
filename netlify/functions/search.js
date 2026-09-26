@@ -54,7 +54,7 @@ exports.handler = async (event, context) => {
         // Search in account, station_code, VMY_Code, or subscriber_name
         const acc = (item.account || '').toLowerCase();
         const station = (item.station_code || '').toLowerCase();
-        const vmy = (item.VMY_Code || item.vmy_code || '').toLowerCase();
+        const vmy = (item.custoemr_phone_number || item.phone_no || '').toLowerCase();
         const name = (item.subscriber_name || '').toLowerCase();
 
         if (acc.includes(query) || station.includes(query) || vmy.includes(query) || name.includes(query)) {
